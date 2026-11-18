@@ -104,6 +104,9 @@ def run_multi_instance_benchmark(df_all: pd.DataFrame, target_sizes=[30, 36, 40,
         else:
             heur_gap = 0.0
             
+        # Speedup da Heurística em relação ao solver exato (quantas vezes mais rápida)
+        speedup = (milp_time / heur_time) if heur_time > 0 else 0.0
+            
         # Redução de Atrito do HiGHS em relação ao Original (%)
         improvement = ((orig_cost - milp_cost) / orig_cost) * 100.0 if orig_cost > 0 else 0.0
         
@@ -114,15 +117,16 @@ def run_multi_instance_benchmark(df_all: pd.DataFrame, target_sizes=[30, 36, 40,
             'Custo_Original': round(orig_cost, 4),
             'Custo_Shuffle': round(shuf_mean, 4),
             'Tempo_Heur_s': round(heur_time, 4),
-            'Custo_Heur': round(heur_cost, 4),
             'Tempo_HiGHS_s': round(milp_time, 3),
+            'Speedup_Heur_x': round(speedup, 1),
+            'Custo_Heur': round(heur_cost, 4),
             'Custo_HiGHS': round(milp_cost, 4),
             'Status_HiGHS': milp_status,
             'GAP_Heur_%': round(heur_gap, 2),
             'Melhoria_%': round(improvement, 2)
         })
         
-        print(f"   [OK] HiGHS: {milp_cost:.4f} ({milp_time:.2f}s) | Heurística: {heur_cost:.4f} (GAP: {heur_gap:.1f}%) | Redução: {improvement:.1f}%")
+        print(f"   [OK] HiGHS: {milp_cost:.4f} ({milp_time:.2f}s) | Heurística: {heur_cost:.4f} ({speedup:.1f}x mais rápida, GAP: {heur_gap:.1f}%) | Redução: {improvement:.1f}%")
         
     df_results = pd.DataFrame(results)
     
