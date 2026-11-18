@@ -1,0 +1,19 @@
+# Documentação local e estudos
+docs/
+
+# Caches e arquivos compilados do Python
+__pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+
+# Arquivos temporários e logs
+*.zip
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+venv/
+env/
