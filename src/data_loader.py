@@ -10,6 +10,7 @@ Responsabilidades:
 """
 
 import os
+import numpy as np
 import pandas as pd
 from typing import Optional, Tuple, List
 
@@ -94,13 +95,34 @@ def load_clean_dataset(csv_path: Optional[str] = None) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     initial_count = len(df)
     
-    # 1. Filtragem de inconsistências acústicas (tempo > 0 e key >= 0)
-    df = df[(df['tempo'] > 0) & (df['key'] >= 0) & (df['energy'] >= 0)].copy()
+    # 1. Checagem explícita de domínio e finitude:
+    # - tempo > 0 e finito
+    # - energy em [0.0, 1.0] e finita
+    # - key inteiro em {0, ..., 11}
+    # - mode inteiro em {0, 1}
+    valid_domain_mask = (
+        np.isfinite(df['tempo']) & (df['tempo'] > 0) &
+        np.isfinite(df['energy']) & (df['energy'] >= 0.0) & (df['energy'] <= 1.0) &
+        df['key'].isin(range(12)) &
+        df['mode'].isin([0, 1])
+    )
+    invalid_domain_count = initial_count - int(valid_domain_mask.sum())
+    df = df[valid_domain_mask].copy()
     
-    # 2. Descarte de duplicatas dentro da mesma playlist
+    # Converte explicitamente tipos numéricos inteiros
+    df['key'] = df['key'].astype(int)
+    df['mode'] = df['mode'].astype(int)
+    
+    # 2. Descarte de duplicatas dentro da mesma playlist:
+    # Regra 2a: mesmo track_id na mesma playlist
+    before_dup_id = len(df)
     df = df.drop_duplicates(subset=['playlist_id', 'track_id']).copy()
+    dup_id_count = before_dup_id - len(df)
 
+    # Regra 2b: mesmo track_name e track_artist na mesma playlist
+    before_dup_name = len(df)
     df = df.drop_duplicates(subset=['playlist_id', 'track_name', 'track_artist']).copy()
+    dup_name_count = before_dup_name - len(df)
     
     # 3. Conversão para a Roda de Camelot
     df['camelot'] = df.apply(lambda row: transform_camelot(row['key'], row['mode']), axis=1)
@@ -110,7 +132,10 @@ def load_clean_dataset(csv_path: Optional[str] = None) -> pd.DataFrame:
     
     final_count = len(df)
     num_playlists = df['playlist_id'].nunique()
-    print(f"-> Limpeza concluída: {final_count} faixas válidas em {num_playlists} playlists reais (descartadas {initial_count - final_count} linhas inconsistentes/duplicadas).")
+    print(f"-> Limpeza concluída: {final_count} faixas válidas em {num_playlists} playlists reais.")
+    print(f"   • {invalid_domain_count} linha descartada por domínio acústico inválido (tempo <= 0 ou energy fora de [0,1])")
+    print(f"   • {dup_id_count} duplicatas descartadas por mesmo track_id na mesma playlist")
+    print(f"   • {dup_name_count} duplicatas descartadas por mesmo (track_name, track_artist) na mesma playlist")
     
     return df
 

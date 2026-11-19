@@ -80,12 +80,17 @@ def solve_open_atsp(
     prob.solve(solver)
     runtime = time.time() - t_start
     
-    status_str = pulp.LpStatus[prob.status]
-    # Atenção: com limite de tempo, o PuLP pode dizer status 'Optimal' mesmo sem provar o ótimo.
-    # O sol_status é quem diferencia: 1 = ótimo provado, 2 = solução viável sem prova de ótimo.
+    # Distingue claramente: Ótimo provado vs Solução viável sob limite de tempo
     is_optimal = (prob.sol_status == pulp.constants.LpSolutionOptimal)
     has_solution = prob.sol_status in (pulp.constants.LpSolutionOptimal,
                                        pulp.constants.LpSolutionIntegerFeasible)
+    
+    if is_optimal:
+        status_str = "Optimal"
+    elif has_solution:
+        status_str = "Time_Limit_Feasible"
+    else:
+        status_str = pulp.LpStatus[prob.status]
     
     # Reconstrução da rota da playlist:
     # O nó dummy 'n' aponta para a 1ª música real da playlist (x[dummy, s_1] == 1)
@@ -117,11 +122,33 @@ def solve_open_atsp(
             else:
                 break
                 
-    # Se o solver não achou nenhuma solução, o custo é nan (e não 0.0, que pareceria perfeito)
-    if has_solution and len(route) > 0:
+    # Validação estrita: a rota precisa conter todas as n faixas sem repetição
+    is_valid_route = (len(route) == n and len(set(route)) == n)
+    
+    # Se o solver não achou solução ou a rota for incompleta, custo é nan
+    if has_solution and is_valid_route:
         obj_val = float(pulp.value(prob.objective))
     else:
         obj_val = float('nan')
+        route = []
+        if not is_valid_route and has_solution:
+            status_str = "Incomplete_Route"
+            
+    # Extração de métricas nativas do solver HiGHS
+    solver_gap = 0.0 if is_optimal else None
+    dual_bound = obj_val if is_optimal else None
+    
+    if hasattr(prob, 'solverModel') and prob.solverModel is not None:
+        try:
+            info = prob.solverModel.getInfo()
+            if hasattr(info, 'mip_gap') and np.isfinite(info.mip_gap):
+                if not is_optimal:
+                    solver_gap = round(float(info.mip_gap) * 100.0, 2)
+            if hasattr(info, 'mip_dual_bound') and np.isfinite(info.mip_dual_bound):
+                if not is_optimal:
+                    dual_bound = round(float(info.mip_dual_bound), 4)
+        except Exception:
+            pass
     
     return {
         'status': status_str,
@@ -129,5 +156,7 @@ def solve_open_atsp(
         'route': route,
         'runtime_sec': runtime,
         'is_optimal': is_optimal,
+        'solver_gap': solver_gap,
+        'dual_bound': dual_bound,
         'num_tracks': n
     }

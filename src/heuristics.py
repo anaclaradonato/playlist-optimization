@@ -22,11 +22,11 @@ from cost_matrix import evaluate_sequence_cost
 def random_shuffle_baseline(
     cost_matrix: np.ndarray,
     n_shuffles: int = 500,
-    seed: int = 42
+    seed: int = 0
 ) -> Dict[str, float]:
     """
     Gera n_shuffles permutações aleatórias da playlist para estabelecer a linha de base
-    estatística (o 'pior caso' de uma reprodução sem nenhum critério de curadoria).
+    estatística (uma referência: a reprodução sem nenhum critério de curadoria).
     
     Retorna a média, o desvio padrão e o melhor custo encontrado no sorteio.
     """
@@ -102,7 +102,7 @@ def or_opt(
     cost_matrix: np.ndarray,
     initial_route: List[int],
     max_segment_len: int = 3,
-    max_passes: int = 50
+    max_passes: int = 1000
 ) -> Tuple[List[int], float]:
     """
     Busca Local Or-opt (Or, 1976).
@@ -111,7 +111,8 @@ def or_opt(
     em outras posições da sequência, sem inverter a ordem interna do bloco.
     
     Repete o processo até atingir um ótimo local (nenhuma realocação reduz o custo)
-    ou atingir max_passes.
+    ou atingir max_passes. Cada passagem aplica UMA realocação que melhora o custo, então
+    max_passes é o número máximo de melhorias aplicadas (o laço para sozinho antes, no ótimo local).
     """
     route = initial_route.copy()
     current_cost = evaluate_sequence_cost(route, cost_matrix)
@@ -198,4 +199,3 @@ if __name__ == '__main__':
     res = solve_heuristic(test_c)
     print(f" • Custo Vizinho Próximo:  {res['nn_cost']:.4f}")
     print(f" • Custo Or-opt Refinado: {res['cost']:.4f} (em {res['runtime_sec']:.4f}s)")
-
