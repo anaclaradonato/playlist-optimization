@@ -1,0 +1,19 @@
+Categoria,Parametro,Valor,Papel_Metodologico
+Ambiente Computacional,Processador (CPU),Intel Core 12th/13th Gen (12 cores / 16 threads),Plataforma de processamento local dos testes
+Ambiente Computacional,Memoria RAM,8.0 GB,Capacidade de alocacao da arvore de Branch-and-Bound
+Ambiente Computacional,Sistema Operacional,Windows 11 (Build 26200),Ambiente de execucao e controle de processos
+Ambiente Computacional,Linguagem / Versao,Python 3.13.1,Linguagem de suporte a modelagem matematica
+Ambiente Computacional,Solver de Otimizacao,HiGHS v1.16.0 (via PuLP v3.3.2),Solver exato de alto desempenho sugerido no edital
+Dataset e Limpeza,Fonte dos Dados,Kaggle (Spotify Songs Dataset),Base publica real de faixas com metadados acusticos
+Dataset e Limpeza,Faixas Brutas no CSV,32.833 faixas,Contagem inicial do dataset
+Dataset e Limpeza,Faixas Validas Apos Limpeza,32.185 faixas em 471 playlists,Descarte: 1 tempo<=0; 582 duplicatas ID; 65 nome/artista
+Dataset e Limpeza,Instancias Benchmark,"7 playlists (n = 15, 30, 36, 50, 60, 75, 100)","Amostragem em 4 generos (R&B, Rap, Pop, EDM)"
+Pesos da Funcao Objetivo,Peso de BPM (w_bpm),0.35,Prioridade a continuidade ritmica (passo de danca)
+Pesos da Funcao Objetivo,Peso de Tom (w_tom),0.35,Prioridade a harmonia tonal (Roda de Camelot)
+Pesos da Funcao Objetivo,Peso de Energia (w_energia),0.30,Prioridade a manutencao da intensidade de palco
+Parametros Fisicos,Assimetria de Energia (gamma),1.5,Penalizacao assimetrica para amortecer drops bruscos
+Parametros Fisicos,Tolerancia Dobro/Metade BPM,0.5x e 2.0x,Equivalencia harmonica de andamento ritmico
+Parametros Fisicos,Teto / Normalizacao de BPM,40.0 BPM,"Escalonamento linear para escala adimensional [0, 1]"
+Parametros Fisicos,Normalizacao de Tom,7 passos,Distancia maxima no grafo toroidal da Roda de Camelot
+Protocolo Experimental,Tempo Limite do HiGHS,300 segundos,Orcamento de tempo estendido para provar otimo global
+Protocolo Experimental,Linha de Base de Controle,500 permutacoes de Monte Carlo (seed=0),Controle estatistico neutro na ausencia de curadoria

@@ -1,0 +1,7 @@
+Metrica_Fisica,Ordem_Arquivo_Antes,HiGHS_Depois,Impacto_Fisico
+Salto Médio de BPM,24.81 BPM,4.46 BPM,-82.0% (Fluidez contínua na dança)
+Salto Máximo de BPM,59.54 BPM,13.03 BPM,-78.1% (Eliminação de choques bruscos)
+Transições Harmônicas (Camelot <= 1),5 de 35 (14.3%),19 de 35 (54.3%),+280.0% (Mais que triplicou a harmonia)
+Trocas de Tom na Sequência,33 de 35,30 de 35,Transições harmônicas contínuas
+Total de Quedas de Energia,15 quedas,15 quedas,Estável (Manutenção da pista)
+Maior Salto de Energia (|ΔE|),0.335,0.339,Amortecimento de drops

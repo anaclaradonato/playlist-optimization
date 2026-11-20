@@ -1,6 +1,5 @@
 """
-Módulo de Heurísticas de Otimização e Linha de Base (heuristics.py)
-Projeto: Sequenciamento Ótimo de Playlists (Open ATSP) - Trabalho Final de PL
+Módulo de Heurísticas de Otimização e Linha de Base
 
 Responsabilidades:
 1. Linha de Base Aleatória (Random Shuffle Baseline): avalia 500 permutações aleatórias.
@@ -15,15 +14,14 @@ Responsabilidades:
 import time
 import random
 import numpy as np
-from typing import List, Dict, Any, Tuple
 from cost_matrix import evaluate_sequence_cost
 
 
 def random_shuffle_baseline(
-    cost_matrix: np.ndarray,
-    n_shuffles: int = 500,
-    seed: int = 0
-) -> Dict[str, float]:
+    cost_matrix,
+    n_shuffles=500,
+    seed=0
+):
     """
     Gera n_shuffles permutações aleatórias da playlist para estabelecer a linha de base
     estatística (uma referência: a reprodução sem nenhum critério de curadoria).
@@ -50,9 +48,9 @@ def random_shuffle_baseline(
 
 
 def nearest_neighbor(
-    cost_matrix: np.ndarray,
-    multi_start: bool = True
-) -> Tuple[List[int], float]:
+    cost_matrix,
+    multi_start=True
+):
     """
     Heurística Construtiva do Vizinho Mais Próximo (Nearest Neighbor).
     
@@ -98,21 +96,10 @@ def nearest_neighbor(
     return best_route, best_cost
 
 
-def or_opt(
-    cost_matrix: np.ndarray,
-    initial_route: List[int],
-    max_segment_len: int = 3,
-    max_passes: int = 1000
-) -> Tuple[List[int], float]:
+def or_opt(cost_matrix, initial_route, max_segment_len=3, max_passes=1000):
     """
     Busca Local Or-opt (Or, 1976).
-    
-    Refina uma rota existente tentando realocar blocos de tamanho 1, 2 ou 3 músicas
-    em outras posições da sequência, sem inverter a ordem interna do bloco.
-    
-    Repete o processo até atingir um ótimo local (nenhuma realocação reduz o custo)
-    ou atingir max_passes. Cada passagem aplica UMA realocação que melhora o custo, então
-    max_passes é o número máximo de melhorias aplicadas (o laço para sozinho antes, no ótimo local).
+    Refina a rota transferindo blocos de 1 a 3 músicas para melhores posições.
     """
     route = initial_route.copy()
     current_cost = evaluate_sequence_cost(route, cost_matrix)
@@ -120,45 +107,30 @@ def or_opt(
     
     for _ in range(max_passes):
         improved = False
-        
-        # Testa segmentos de tamanho 3, 2 e 1
         for seg_len in range(max_segment_len, 0, -1):
             for i in range(n - seg_len + 1):
-                # Extrai o segmento de teste
-                segment = route[i : i + seg_len]
-                remaining = route[:i] + route[i + seg_len :]
-                
-                # Testa reinserir o segmento em todas as posições possíveis
-                for insert_pos in range(len(remaining) + 1):
-                    # Não reavalia a posição de onde acabou de sair
-                    if insert_pos == i:
+                seg = route[i:i + seg_len]
+                rem = route[:i] + route[i + seg_len:]
+                for pos in range(len(rem) + 1):
+                    if pos == i:
                         continue
-                        
-                    candidate = (
-                        remaining[:insert_pos] + segment + remaining[insert_pos:]
-                    )
-                    candidate_cost = evaluate_sequence_cost(candidate, cost_matrix)
-                    
-                    # Se encontrou melhoria estrita (com tolerância numérica)
-                    if candidate_cost < current_cost - 1e-9:
-                        route = candidate
-                        current_cost = candidate_cost
+                    cand = rem[:pos] + seg + rem[pos:]
+                    cand_cost = evaluate_sequence_cost(cand, cost_matrix)
+                    if cand_cost < current_cost - 1e-9:
+                        route, current_cost = cand, cand_cost
                         improved = True
                         break
-                        
                 if improved:
                     break
             if improved:
                 break
-                
-        # Se nenhuma troca de bloco de tamanho 1, 2 ou 3 melhorou a rota, paramos
         if not improved:
             break
             
     return route, current_cost
 
 
-def solve_heuristic(cost_matrix: np.ndarray) -> Dict[str, Any]:
+def solve_heuristic(cost_matrix):
     """
     Resolve o sequenciamento da playlist utilizando a combinação Heurística Completa:
     1. Constrói uma rota inicial via Vizinho Mais Próximo Multi-Start;
@@ -167,35 +139,14 @@ def solve_heuristic(cost_matrix: np.ndarray) -> Dict[str, Any]:
     Retorna o dicionário de resultados com tempo de CPU, rota e custo final.
     """
     t0 = time.time()
-    
-    # Etapa 1: Construtiva
     nn_route, nn_cost = nearest_neighbor(cost_matrix, multi_start=True)
-    
-    # Etapa 2: Refinamento Local
     refined_route, final_cost = or_opt(cost_matrix, nn_route, max_segment_len=3)
-    
-    runtime = time.time() - t0
     
     return {
         'status': 'Heuristic_Local_Optimum',
         'route': refined_route,
         'cost': final_cost,
         'nn_cost': nn_cost,
-        'runtime_sec': runtime,
+        'runtime_sec': time.time() - t0,
         'num_tracks': len(refined_route)
     }
-
-
-if __name__ == '__main__':
-    # Teste rápido do módulo
-    print("Testando heuristics.py com matriz aleatória de teste...")
-    n = 20
-    test_c = np.random.rand(n, n)
-    np.fill_diagonal(test_c, 1e9)
-    
-    shuf = random_shuffle_baseline(test_c, n_shuffles=100)
-    print(f" • Baseline Shuffle Médio: {shuf['mean_cost']:.4f}")
-    
-    res = solve_heuristic(test_c)
-    print(f" • Custo Vizinho Próximo:  {res['nn_cost']:.4f}")
-    print(f" • Custo Or-opt Refinado: {res['cost']:.4f} (em {res['runtime_sec']:.4f}s)")

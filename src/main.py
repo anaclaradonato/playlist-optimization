@@ -1,6 +1,5 @@
 """
-Script de Execução Principal (main.py)
-Projeto: Sequenciamento Ótimo de Playlists (Open ATSP) - Trabalho Final de PL
+Script de Execução Principal
 
 Objetivos:
 1. Carregar os dados limpos do 'spotify_songs.csv'.
@@ -170,8 +169,9 @@ def main():
         ene = df_pl['energy'].iloc[track_idx]
         print(f" {pos:>2}º: {name:<28} | {artist:<18} | {bpm:>5.1f} BPM | Tom: {cam:>3} | E: {ene:.2f}")
 
-    # Salva a sequência completa de todas as faixas em CSV e Markdown
-    res_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results")
+    # Salva a sequência completa de todas as faixas em CSV
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    res_dir = os.path.abspath(os.path.join(base_dir, "..", "results"))
     os.makedirs(res_dir, exist_ok=True)
     
     rows = []
@@ -199,28 +199,10 @@ def main():
     df_seq = pd.DataFrame(rows)
     
     out_csv = os.path.join(res_dir, "sequencia_otimizada.csv")
-    out_md = os.path.join(res_dir, "sequencia_otimizada.md")
-    
     df_seq.to_csv(out_csv, index=False)
-    
-    try:
-        table_md = df_seq.to_markdown(index=False)
-    except Exception:
-        table_md = df_seq.to_string(index=False)
-        
-    md_content = f"# Sequência Completa Otimizada — Playlist '{pl_name}' (n = {n} faixas)\n\n"
-    md_content += f"**Gênero:** {pl_genre} | **Status:** {status} (Ótimo Comprovado: {is_optimal})\n\n"
-    md_content += f"- **Custo Otimizado:** {opt_cost:.4f}\n"
-    md_content += f"- **Custo Ordem do Arquivo:** {orig_cost:.4f} (Melhoria de {improvement:.2f}%)\n"
-    md_content += f"- **Custo Médio Shuffle (500):** {random_mean:.4f} (Melhoria de {improvement_random:.2f}%)\n\n"
-    md_content += table_md
-    
-    with open(out_md, 'w', encoding='utf-8') as f:
-        f.write(md_content)
         
     print(f"\n-> Sequência completa das {n} faixas salva com sucesso em:")
     print(f"   • CSV:      {out_csv}")
-    print(f"   • Markdown: {out_md}")
 
 
 if __name__ == '__main__':

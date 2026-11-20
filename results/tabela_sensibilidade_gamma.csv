@@ -1,0 +1,6 @@
+gamma,Custo_Total,Salto_Medio_BPM,Dist_Media_Camelot,Total_Quedas_Energia,Media_Queda_Energia,Maior_Salto_Energia,Status_HiGHS,Tempo_HiGHS_s
+1.0,5.2886,4.46,1.63,15,0.111,0.339,Optimal,3.114
+1.2,5.3885,4.46,1.63,15,0.111,0.339,Optimal,2.511
+1.5,5.5383,4.46,1.63,15,0.111,0.339,Optimal,1.777
+2.0,5.7881,4.46,1.63,15,0.111,0.339,Optimal,2.46
+3.0,6.1798,6.7,1.49,14,0.083,0.277,Optimal,1.709

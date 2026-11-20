@@ -1,28 +1,26 @@
 """
-Módulo Solver Exato Open ATSP no HiGHS (open_atsp_solver.py)
-Projeto: Sequenciamento Ótimo de Playlists (Open ATSP) - Trabalho Final de PL
+Módulo Solver Exato Open ATSP no HiGHS
 
 Responsabilidades:
 1. Modelar o Caixeiro-Viajante Assimétrico de Caminho Aberto (Open ATSP) em PLIM.
 2. Inserção do nó fictício (dummy) com arcos de custo zero para abrir o circuito.
 3. Eliminação de sub-rotas via restrições de Miller-Tucker-Zemlin (MTZ).
-4. Resolução exata utilizando o solver HiGHS (via PuLP / Highs) com suporte a limite de tempo (time_limit).
-5. Reconstrução determinística da rota ordenada da playlist.
+4. Resolução utilizando o solver HiGHS (via PuLP / Highs) com suporte a limite de tempo (time_limit).
+5. Reconstrução da rota ordenada da playlist.
 
-Requer: pip install "pulp<4" highspy   (o PuLP 4.x mudou a API e não funciona com este código)
+Requer: pip install "pulp<4" highspy 
 """
 
 import time
 import numpy as np
 import pulp
-from typing import Dict, Any, List, Optional
 
 
 def solve_open_atsp(
-    cost_matrix: np.ndarray,
-    time_limit: Optional[int] = 60,
-    verbose: bool = False
-) -> Dict[str, Any]:
+    cost_matrix,
+    time_limit=60,
+    verbose=False
+):
     """
     Resolve o Open ATSP para uma matriz de custos n x n.
     
@@ -93,70 +91,26 @@ def solve_open_atsp(
         status_str = pulp.LpStatus[prob.status]
     
     # Reconstrução da rota da playlist:
-    # O nó dummy 'n' aponta para a 1ª música real da playlist (x[dummy, s_1] == 1)
-    # E a última música real aponta de volta para o dummy (x[s_n, dummy] == 1)
+    # Segue a cadeia a partir do nó dummy 'n' (que aponta para a 1ª faixa)
     route = []
-    
-    # Encontra o sucessor do nó dummy
-    current = None
-    for j in real_nodes:
-        val = pulp.value(x[(dummy_node, j)])
-        if val is not None and val > 0.5:
-            current = j
-            break
-            
-    if current is not None:
-        route.append(current)
-        # Segue a cadeia de sucessores até atingir todas as n músicas
-        for _ in range(n - 1):
-            next_node = None
-            for j in real_nodes:
-                if j != current:
-                    val = pulp.value(x[(current, j)])
-                    if val is not None and val > 0.5:
-                        next_node = j
-                        break
-            if next_node is not None:
-                route.append(next_node)
-                current = next_node
-            else:
-                break
-                
-    # Validação estrita: a rota precisa conter todas as n faixas sem repetição
+    if has_solution:
+        sucessores = {i: j for (i, j) in valid_arcs if pulp.value(x[(i, j)]) is not None and pulp.value(x[(i, j)]) > 0.5}
+        atual = sucessores.get(dummy_node)
+        while atual is not None and atual != dummy_node and len(route) < n:
+            route.append(atual)
+            atual = sucessores.get(atual)
+
+    # Validação da rota
     is_valid_route = (len(route) == n and len(set(route)) == n)
-    
-    # Se o solver não achou solução ou a rota for incompleta, custo é nan
-    if has_solution and is_valid_route:
-        obj_val = float(pulp.value(prob.objective))
-    else:
-        obj_val = float('nan')
-        route = []
-        if not is_valid_route and has_solution:
-            status_str = "Incomplete_Route"
-            
-    # Extração de métricas nativas do solver HiGHS
-    solver_gap = 0.0 if is_optimal else None
-    dual_bound = obj_val if is_optimal else None
-    
-    if hasattr(prob, 'solverModel') and prob.solverModel is not None:
-        try:
-            info = prob.solverModel.getInfo()
-            if hasattr(info, 'mip_gap') and np.isfinite(info.mip_gap):
-                if not is_optimal:
-                    solver_gap = round(float(info.mip_gap) * 100.0, 2)
-            if hasattr(info, 'mip_dual_bound') and np.isfinite(info.mip_dual_bound):
-                if not is_optimal:
-                    dual_bound = round(float(info.mip_dual_bound), 4)
-        except Exception:
-            pass
-    
+    obj_val = float(pulp.value(prob.objective)) if (has_solution and is_valid_route) else float('nan')
+
     return {
         'status': status_str,
         'objective_cost': obj_val,
-        'route': route,
+        'route': route if is_valid_route else [],
         'runtime_sec': runtime,
         'is_optimal': is_optimal,
-        'solver_gap': solver_gap,
-        'dual_bound': dual_bound,
+        'solver_gap': 0.0 if is_optimal else None,
+        'dual_bound': obj_val if is_optimal else None,
         'num_tracks': n
     }
